@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>setup_gns &#8212; spica-tools 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="gen_lmpin" href="gen_lmpin.html" />
+    <link rel="prev" title="setup_gmx" href="setup_gmx.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="gen_lmpin.html" title="gen_lmpin"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="setup_gmx.html" title="setup_gmx"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">spica-tools 1.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">setup_gns</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="setup-gns">
+<h1>setup_gns<a class="headerlink" href="#setup-gns" title="Link to this heading">¶</a></h1>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<pre class="literal-block">cg_spica setup_gns [-Go] &lt;<strong>topfile 1</strong>&gt; &lt;<strong>nmol 1</strong>&gt; [&lt;<strong>topfile 2</strong>&gt; &lt;<strong>nmol 2</strong>&gt; ... &lt;<strong>topfile n</strong>&gt; &lt;<strong>nmol n</strong>&gt;]
+                   &lt;<strong>paramfile</strong>&gt; &lt;<strong>coordfile</strong>&gt;</pre>
+</section>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">setup_gns</span></code> generates simulation input files for CG-MD with SPICA using GENESIS.
+This program requires the following files as inputs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">topfile</span></code>: SPICA topology file, distributed at <a class="reference external" href="https://www.spica-ff.org/download.html">SPICA web</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramfile</span></code>: SPICA parameter file, distributed at <a class="reference external" href="https://www.spica-ff.org/download.html">SPICA web</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coordfile</span></code>: CG configuration file in PDB format</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">topfile</span></code> can be generated with <code class="docutils literal notranslate"><span class="pre">json2top</span></code>, <code class="docutils literal notranslate"><span class="pre">ENM</span></code>, or <code class="docutils literal notranslate"><span class="pre">Go</span></code> commands (for proteins).
+For more information on these, see <a class="reference internal" href="json2top.html"><span class="doc">json2top</span></a>, <a class="reference internal" href="ENM.html"><span class="doc">ENM</span></a>, and <a class="reference internal" href="Go.html"><span class="doc">Go</span></a>.
+The <code class="docutils literal notranslate"><span class="pre">nmol</span></code> is the number of <code class="docutils literal notranslate"><span class="pre">topfile</span></code> molecules included in your system.
+It is sensitive to the order of arguments, so the molecule topology and number
+should be given in the same order as given in the prepared configuration file in the PDB file.</p>
+<p>Running the program with the appropriate input files yields the following outputs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/top_spica_charmm.rtf</span></code>: CHARMM-style RTF (residue topology file) for GENESIS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/par_spica_charmm.prm</span></code>: CHARMM-style parameter file for GENESIS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gns_spica.psf</span></code>: PSF (protein structure file) containing system topology</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_bond_index.ndx</span></code>: ENM bond index file (only when -Go option is used)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_bond_parm.prm</span></code>: ENM bond parameter file (only when -Go option is used)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_angle_index.ndx</span></code>: ENM angle index file (only when -Go option is used)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_angle_parm.prm</span></code>: ENM angle parameter file (only when -Go option is used)</p></li>
+</ul>
+<p>The RTF and parameter files in the <code class="docutils literal notranslate"><span class="pre">toppar/</span></code> directory and the PSF file are required to run
+GENESIS CG-MD with SPICA FF. Use these files with the control file generated by <code class="docutils literal notranslate"><span class="pre">gen_gnsin</span></code>
+to start the simulation. For systems with Go model proteins (<code class="docutils literal notranslate"><span class="pre">-Go</span></code> option), ENM files are
+automatically generated and should be included in the GENESIS control file.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h2>
+<p><strong>Lipid membrane system (no proteins):</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>DOPC.top<span class="w"> </span><span class="m">128</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">1408</span><span class="w"> </span>spica_db.prm<span class="w"> </span>dopc.cg.pdb
+</pre></div>
+</div>
+<p><a class="reference download internal" download="" href="_downloads/c2b106deaf88869d08cfdf2eb3bbd605/DOPC.top"><code class="xref download docutils literal notranslate"><span class="pre">DOPC.top</span></code></a>
+<a class="reference download internal" download="" href="_downloads/25310e5143479c4b4d54a57887abd994/WAT.top"><code class="xref download docutils literal notranslate"><span class="pre">WAT.top</span></code></a>
+<a class="reference download internal" download="" href="_downloads/013e4c01db335200cc2735253f1ccb43/spica_db.prm"><code class="xref download docutils literal notranslate"><span class="pre">spica_db.prm</span></code></a>
+<a class="reference download internal" download="" href="_downloads/1a260e983dc98e6f15d47fe2d2b549e8/dopc.cg.pdb"><code class="xref download docutils literal notranslate"><span class="pre">dopc.cg.pdb</span></code></a></p>
+<p>Output files:</p>
+<p><code class="xref download docutils literal notranslate"><span class="pre">toppar/top_spica_charmm.rtf</span></code>
+<code class="xref download docutils literal notranslate"><span class="pre">toppar/par_spica_charmm.prm</span></code>
+<code class="xref download docutils literal notranslate"><span class="pre">gns_spica.psf</span></code></p>
+<p><strong>Protein with Go model or ENM:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>-Go<span class="w"> </span>protein.top.v2.Go<span class="w"> </span><span class="m">1</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">5000</span><span class="w"> </span>spica_db.prm<span class="w"> </span>protein.cg.pdb
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">-Go</span></code> option treats each protein as an independent topology. This generates ENM files
+in addition to the standard output files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_bond_index.ndx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_bond_parm.prm</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_angle_index.ndx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">toppar/enm_angle_parm.prm</span></code></p></li>
+</ul>
+<p><strong>Multiple protein copies with Go/ENM:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>-Go<span class="w"> </span>protein.top.v2.Go<span class="w"> </span><span class="m">3</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">5000</span><span class="w"> </span>spica_db.prm<span class="w"> </span>system.pdb
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">-Go</span></code>, the 3 protein copies are treated as 3 independent topology entries (each with nmol=1),
+ensuring correct Go/ENM interaction indexing for each molecule.</p>
+</section>
+<section id="positional-args">
+<h2>Positional args<a class="headerlink" href="#positional-args" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">topfile</span></code> &lt;topology&gt;</dt><dd><p>topology file of a molecule</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">nmol</span></code> &lt;int&gt;</dt><dd><p>number of molecules</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">paramfile</span></code> &lt;parameter&gt;</dt><dd><p>SPICA force field parameter file</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">coordfile</span></code> &lt;.pdb&gt;</dt><dd><p>CG configuration file</p>
+</dd>
+</dl>
+</section>
+<section id="optional-args">
+<h2>Optional args<a class="headerlink" href="#optional-args" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">-Go</span></code></dt><dd><p>Enable special handling for proteins with Go model or ENM. When this option is used,
+each protein molecule is treated as an independent topology entry, even when multiple
+copies (nmol &gt; 1) are specified. This is required for correct indexing of Go/ENM
+interactions within each protein molecule.</p>
+</dd>
+</dl>
+</section>
+<section id="important-notes">
+<h2>Important Notes<a class="headerlink" href="#important-notes" title="Link to this heading">¶</a></h2>
+<dl>
+<dt><strong>File Order</strong></dt><dd><p>The order of topology files and molecule numbers must match the order of molecules
+in the PDB file.</p>
+</dd>
+<dt><strong>Multiple Molecules</strong></dt><dd><p>When specifying multiple molecule types, provide them in pairs:
+<code class="docutils literal notranslate"><span class="pre">topfile1</span> <span class="pre">nmol1</span> <span class="pre">topfile2</span> <span class="pre">nmol2</span> <span class="pre">...</span> <span class="pre">paramfile</span> <span class="pre">pdbfile</span></code></p>
+</dd>
+<dt><strong>When to Use -Go Option</strong></dt><dd><p>Use <code class="docutils literal notranslate"><span class="pre">-Go</span></code> when your topology file was generated by the <code class="docutils literal notranslate"><span class="pre">Go</span></code> or <code class="docutils literal notranslate"><span class="pre">ENM</span></code> commands
+and contains proteins with Go-like model or elastic network constraints. This ensures
+that each protein copy is treated independently for correct interaction indexing.</p>
+<p>Example with 3 protein copies:</p>
+<ul class="simple">
+<li><p><strong>Without -Go</strong>: Creates 1 topology with nmol=3</p></li>
+<li><p><strong>With -Go</strong>: Creates 3 independent topologies, each with nmol=1</p></li>
+</ul>
+</dd>
+<dt><strong>ENM File Detection</strong></dt><dd><p>When topology files contain ENM or Go model parameters, the program automatically
+generates ENM parameter files (<code class="docutils literal notranslate"><span class="pre">enm_bond_index.ndx</span></code>, <code class="docutils literal notranslate"><span class="pre">enm_bond_parm.prm</span></code>,
+<code class="docutils literal notranslate"><span class="pre">enm_angle_index.ndx</span></code>, <code class="docutils literal notranslate"><span class="pre">enm_angle_parm.prm</span></code>) in the <code class="docutils literal notranslate"><span class="pre">toppar/</span></code> directory.
+These files are automatically detected by <code class="docutils literal notranslate"><span class="pre">gen_gnsin</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="complete-workflow">
+<h2>Complete Workflow<a class="headerlink" href="#complete-workflow" title="Link to this heading">¶</a></h2>
+<p><strong>Step 1: Generate topology and parameter files</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>DOPC.top<span class="w"> </span><span class="m">128</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">1408</span><span class="w"> </span>spica_db.prm<span class="w"> </span>system.pdb
+</pre></div>
+</div>
+<p><strong>Step 2: Generate GENESIS control file</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>gen_gnsin<span class="w"> </span>-pdb<span class="w"> </span>system.pdb
+</pre></div>
+</div>
+<p><strong>Step 3: Run GENESIS simulation</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span><span class="m">4</span>
+mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span><span class="w"> </span>spdyn<span class="w"> </span>npt.inp<span class="w"> </span>&gt;<span class="w"> </span>npt.log
+</pre></div>
+</div>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="gen_gnsin.html"><span class="doc">gen_gnsin</span></a> - Generate GENESIS input files</p></li>
+<li><p><a class="reference internal" href="setup_lmp.html"><span class="doc">setup_lmp</span></a> - Similar tool for LAMMPS</p></li>
+<li><p><a class="reference internal" href="setup_gmx.html"><span class="doc">setup_gmx</span></a> - Similar tool for GROMACS</p></li>
+<li><p><a class="reference internal" href="ENM.html"><span class="doc">ENM</span></a> - Generate elastic network topology</p></li>
+<li><p><a class="reference internal" href="Go.html"><span class="doc">Go</span></a> - Generate Go model topology</p></li>
+<li><p><a class="reference external" href="https://mdgenesis.org">GENESIS</a> - MD simulation software</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">setup_gns</a><ul>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#description">Description</a></li>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#positional-args">Positional args</a></li>
+<li><a class="reference internal" href="#optional-args">Optional args</a></li>
+<li><a class="reference internal" href="#important-notes">Important Notes</a></li>
+<li><a class="reference internal" href="#complete-workflow">Complete Workflow</a></li>
+<li><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="setup_gmx.html"
+                          title="previous chapter">setup_gmx</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="gen_lmpin.html"
+                          title="next chapter">gen_lmpin</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/setup_gns.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="gen_lmpin.html" title="gen_lmpin"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="setup_gmx.html" title="setup_gmx"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">spica-tools 1.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">setup_gns</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2022, Yusuke Miyazaki.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,212 @@
+gen_gnsin
+=========
+
+Usage
+-----
+
+.. parsed-literal::
+
+    cg_spica gen_gnsin -pdb <:strong:`pdbfile`> [-o <:strong:`output`>] [-pspica] [--toppar_dir <:strong:`dir`>]
+
+Description
+-----------
+
+``gen_gnsin`` generates GENESIS control (input) files for SPICA or pSPICA CG-MD simulations.
+This program reads box size information from a PDB file and creates an NPT ensemble control file
+optimized for SPICA/pSPICA force fields.
+
+The program requires:
+
+- ``pdbfile``: CG configuration file in PDB format with CRYST1 line containing box dimensions
+
+The generated control file contains settings specifically optimized for SPICA/pSPICA force fields,
+including appropriate cutoff distances, PME parameters, and domain decomposition suggestions.
+
+The box size is automatically expanded by 1.02× from the CRYST1 values to provide buffer space
+for NPT equilibration.
+
+Example
+-------
+
+**Generate SPICA NPT input file:**
+
+.. code-block:: bash
+
+    cg_spica gen_gnsin -pdb system.pdb
+
+:download:`system.pdb <data/system.pdb>`
+
+:download:`npt.inp <data/npt.inp>`
+
+**Generate pSPICA input file:**
+
+.. code-block:: bash
+
+    cg_spica gen_gnsin -pdb system.pdb -pspica
+
+This sets ``pme_max_spacing = 2.0`` and ``fast_water = YES`` for polarizable water models.
+
+**Specify custom output filename:**
+
+.. code-block:: bash
+
+    cg_spica gen_gnsin -pdb system.pdb -o production.inp
+
+Positional args
+---------------
+
+``-pdb`` <.pdb>
+    Input PDB file with box information (CRYST1 line required)
+
+Optional args
+-------------
+
+``-o`` <output>
+    Output control file name (default: npt.inp)
+
+``-pspica``
+    Use pSPICA-specific parameters:
+    
+    * pme_max_spacing = 2.0 (instead of 5.0 for SPICA)
+    * fast_water = YES (instead of NO for SPICA)
+
+``--toppar_dir`` <dir>
+    Directory containing topology/parameter files (default: toppar)
+
+Output File
+-----------
+
+The generated control file includes:
+
+**[INPUT] section:**
+    Topology, parameter, PSF, and PDB files. ENM files (``enm_bond_index.ndx``, 
+    ``enm_bond_parm.prm``, ``enm_angle_index.ndx``, ``enm_angle_parm.prm``) are 
+    automatically included if present in toppar directory.
+
+**[ENERGY] section:**
+    SPICA force field settings with PME electrostatics, cutoff=15Å, switch=12Å, 
+    pairlist=18Å. Includes contact_check and nonb_limiter for ENM systems.
+
+**[DYNAMICS] section:**
+    VVER integrator, timestep=10fs, default 10000 steps (100ps test run)
+
+**[ENSEMBLE] section:**
+    NPT ensemble, BUSSI thermostat/barostat, T=310K, P=1.0atm
+
+**[BOUNDARY] section:**
+    PBC with expanded box dimensions (original × 1.02). Domain decomposition 
+    numbers with suggested values in comments.
+
+Domain Decomposition
+--------------------
+
+The program calculates reasonable domain decomposition numbers based on:
+
+* Minimum domain size: 100 Å per domain
+* Valid numbers: Multiples of 2 or 3 (e.g., 2, 3, 4, 6, 8, 9, 10, 12, ...)
+* Minimum count: 2 domains per dimension
+
+For example, with box size 408 Å:
+
+.. code-block:: none
+
+    Maximum domains: floor(408 / 100) = 4
+    Valid candidates: 2, 3, 4
+    Output: domain_x = 2    # 2, 3, 4 is reasonable
+
+Users can manually adjust domain_x/y/z values based on available MPI processes.
+Total MPI processes must equal domain_x × domain_y × domain_z.
+
+Complete Workflow
+-----------------
+
+**Lipid membrane system:**
+
+**Step 1: Generate topology files**
+
+.. code-block:: bash
+
+    cg_spica setup_gns DOPC.top 128 WAT.top 1408 spica_db.prm system.pdb
+
+**Step 2: Generate GENESIS input file**
+
+.. code-block:: bash
+
+    cg_spica gen_gnsin -pdb system.pdb
+
+**Step 3: Run GENESIS simulation**
+
+.. code-block:: bash
+
+    export OMP_NUM_THREADS=4
+    mpirun -n 8 spdyn npt.inp > npt.log
+
+**Protein system with Go model or ENM:**
+
+**Step 1: Generate topology with Go or ENM**
+
+.. code-block:: bash
+
+    # Generate Go model topology
+    cg_spica Go protein.cg.pdb protein.top.v2.Go -aapdb protein.aa.pdb
+    
+    # Or generate ENM topology
+    cg_spica ENM protein.cg.pdb protein.top.v2 -aapdb protein.aa.pdb
+
+**Step 2: Generate GENESIS files with -Go option**
+
+.. code-block:: bash
+
+    cg_spica setup_gns -Go protein.top.v2.Go 1 WAT.top 5000 spica_db.prm system.pdb
+
+This creates ENM files (``enm_bond_index.ndx``, etc.) in ``toppar/`` directory.
+
+**Step 3: Generate GENESIS input file**
+
+.. code-block:: bash
+
+    cg_spica gen_gnsin -pdb system.pdb
+
+ENM files are automatically detected and included in the control file.
+
+**Step 4: Run GENESIS simulation**
+
+.. code-block:: bash
+
+    export OMP_NUM_THREADS=4
+    mpirun -n 8 spdyn npt.inp > npt.log
+
+Important Notes
+---------------
+
+**CRYST1 Line Required**
+    PDB file must contain a CRYST1 line with box information:
+
+    .. code-block:: none
+
+        CRYST1  400.000  500.000  600.000  90.00  90.00  90.00 P 1           1
+
+**Box Size Expansion**
+    Box dimensions are automatically expanded by 1.02× to provide buffer space.
+    Original: 400×500×600 Å → Simulation: 408×510×612 Å
+
+**ENM File Detection**
+    ENM files in toppar/ directory are automatically detected and included in 
+    the parameter file list. No manual specification needed.
+
+**MPI Requirements**
+    GENESIS SPDYN requires at least 2 domains per dimension. Serial execution 
+    is not supported. Minimum configuration: 2×2×2 = 8 MPI processes.
+
+**Timestep**
+    Default timestep is 10 fs, appropriate for SPICA coarse-grained models.
+    This is larger than typical all-atom simulations (2-2.5 fs).
+
+See Also
+--------
+
+* :doc:`setup_gns` - Generate GENESIS topology and parameter files
+* :doc:`gen_lmpin` - Similar tool for LAMMPS
+* :doc:`gen_gmxin` - Similar tool for GROMACS
+* `GENESIS User Guide <https://mdgenesis.org/assets/fundamental/GENESIS_UserGuide_v2.0.0.pdf>`__
+* `SPICA Force Field <https://www.spica-ff.org/>`__
