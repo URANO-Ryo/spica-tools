@@ -24,7 +24,7 @@ def get_option():
 
 
 def get_option_script(argv):
-    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] input_files', prog ="setup_gmx")
+    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] input_files', prog="setup_gns")
     argparser.add_argument('input_files', type=str, nargs="+",
         help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
     argparser.add_argument('-Go', action='store_true',help='Go model for protein backbone')
