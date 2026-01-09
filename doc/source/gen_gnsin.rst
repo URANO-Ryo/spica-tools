@@ -141,23 +141,21 @@ Complete Workflow
     export OMP_NUM_THREADS=4
     mpirun -n 8 spdyn npt.inp > npt.log
 
-**Protein system with Go model or ENM:**
+**Protein system with  ENM:**
 
-**Step 1: Generate topology with Go or ENM**
+**Step 1: Generate topology with ENM**
 
 .. code-block:: bash
 
-    # Generate Go model topology
-    cg_spica Go protein.cg.pdb protein.top.v2.Go -aapdb protein.aa.pdb
-    
-    # Or generate ENM topology
+
+    # generate ENM topology
     cg_spica ENM protein.cg.pdb protein.top.v2 -aapdb protein.aa.pdb
 
-**Step 2: Generate GENESIS files with -Go option**
+**Step 2: Generate GENESIS files**
 
 .. code-block:: bash
 
-    cg_spica setup_gns -Go protein.top.v2.Go 1 WAT.top 5000 spica_db.prm system.pdb
+    cg_spica setup_gns protein.top.v2.Go 1 WAT.top 5000 spica_db.prm system.pdb
 
 This creates ENM files (``enm_bond_index.ndx``, etc.) in ``toppar/`` directory.
 
@@ -200,7 +198,7 @@ Important Notes
 
 **Timestep**
     Default timestep is 10 fs, appropriate for SPICA coarse-grained models.
-    This is larger than typical all-atom simulations (2-2.5 fs).
+    This is larger than typical all-atom simulations (2 fs).
 
 See Also
 --------

@@ -154,17 +154,14 @@ Total MPI processes must equal domain_x × domain_y × domain_z.</p>
 mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span><span class="w"> </span>spdyn<span class="w"> </span>npt.inp<span class="w"> </span>&gt;<span class="w"> </span>npt.log
 </pre></div>
 </div>
-<p><strong>Protein system with Go model or ENM:</strong></p>
-<p><strong>Step 1: Generate topology with Go or ENM</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate Go model topology</span>
-cg_spica<span class="w"> </span>Go<span class="w"> </span>protein.cg.pdb<span class="w"> </span>protein.top.v2.Go<span class="w"> </span>-aapdb<span class="w"> </span>protein.aa.pdb
-
-<span class="c1"># Or generate ENM topology</span>
+<p><strong>Protein system with  ENM:</strong></p>
+<p><strong>Step 1: Generate topology with ENM</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># generate ENM topology</span>
 cg_spica<span class="w"> </span>ENM<span class="w"> </span>protein.cg.pdb<span class="w"> </span>protein.top.v2<span class="w"> </span>-aapdb<span class="w"> </span>protein.aa.pdb
 </pre></div>
 </div>
-<p><strong>Step 2: Generate GENESIS files with -Go option</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>-Go<span class="w"> </span>protein.top.v2.Go<span class="w"> </span><span class="m">1</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">5000</span><span class="w"> </span>spica_db.prm<span class="w"> </span>system.pdb
+<p><a href="#id1"><span class="problematic" id="id2">**</span></a>Step 2: Generate GENESIS files **</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg_spica<span class="w"> </span>setup_gns<span class="w"> </span>protein.top.v2.Go<span class="w"> </span><span class="m">1</span><span class="w"> </span>WAT.top<span class="w"> </span><span class="m">5000</span><span class="w"> </span>spica_db.prm<span class="w"> </span>system.pdb
 </pre></div>
 </div>
 <p>This creates ENM files (<code class="docutils literal notranslate"><span class="pre">enm_bond_index.ndx</span></code>, etc.) in <code class="docutils literal notranslate"><span class="pre">toppar/</span></code> directory.</p>
@@ -197,7 +194,7 @@ the parameter file list. No manual specification needed.</p>
 is not supported. Minimum configuration: 2×2×2 = 8 MPI processes.</p>
 </dd>
 <dt><strong>Timestep</strong></dt><dd><p>Default timestep is 10 fs, appropriate for SPICA coarse-grained models.
-This is larger than typical all-atom simulations (2-2.5 fs).</p>
+This is larger than typical all-atom simulations (2 fs).</p>
 </dd>
 </dl>
 </section>
