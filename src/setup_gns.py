@@ -25,14 +25,18 @@ def get_option():
     argparser.add_argument('input_files', type=str, nargs="+",
                            help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
     argparser.add_argument('-Go', action='store_true',help='Go model for protein backbone')
+    argparser.add_argument('-molid', choices=['molecule', 'residue', 'pdbkeep'], default='molecule',
+                           help='Residue ID numbering mode: "molecule" for per-molecule numbering (default), "residue" for per-residue numbering (increments when residue name changes), "pdbkeep" to preserve residue IDs from input PDB file')
     return argparser.parse_args()
 
 
 def get_option_script(argv):
-    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] input_files', prog="setup_gns")
+    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] [-molid {molecule,residue,pdbkeep}] input_files', prog="setup_gns")
     argparser.add_argument('input_files', type=str, nargs="+",
                            help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
     argparser.add_argument('-Go', action='store_true',help='Go model for protein backbone')
+    argparser.add_argument('-molid', choices=['molecule', 'residue', 'pdbkeep'], default='molecule',
+                           help='Residue ID numbering mode: "molecule" for per-molecule numbering (default), "residue" for per-residue numbering (increments when residue name changes), "pdbkeep" to preserve residue IDs from input PDB file')
     return argparser.parse_args(argv)
 
 
@@ -88,6 +92,7 @@ class Sysdat:
     keep_ndihs = 0
     param_bnds, param_angs, param_dihs, param_imps  = [], [], [], []
     coordx, coordy, coordz = [], [], []
+    resids = []  # Residue IDs from input PDB
     boxx = boxy = boxz = 0.0
 
 
@@ -141,6 +146,12 @@ def read_pdb(fname, sysdat):
                 sysdat.coordx.append(float(line[col:col+8]))
                 sysdat.coordy.append(float(line[col+8:col+16]))
                 sysdat.coordz.append(float(line[col+16:col+24]))
+                # Read residue ID from PDB (columns 23-26, 1-indexed -> 22:26 in Python)
+                try:
+                    resid = int(line[22:26].strip())
+                except (ValueError, IndexError):
+                    resid = 1  # Default to 1 if cannot parse
+                sysdat.resids.append(resid)
                 sysdat.foundatoms += 1
             line = fin.readline()
         if sysdat.foundatoms == 0:
@@ -232,7 +243,7 @@ def resi_rtf(fout, top):
     print(file=fout)
 
 
-def write_psf(topdat, sysdat):
+def write_psf(topdat, sysdat, molid_mode='molecule'):
     with open(f"gns_spica.psf", "w") as fout:
         print("PSF ", file=fout)
         print(file=fout)
@@ -241,19 +252,46 @@ def write_psf(topdat, sysdat):
         print("* dummy", file=fout)
         print(file=fout)
         print("{:8} !NATOM".format(sysdat.total_ats), file=fout)
-        atidx = molidx = 0
+        atidx = 0
         tot_charge = 0.0
+        
         for idx in range(sysdat.ntops):
+            mol_in_topology = 0  # Reset for each topology type
+            
             for jdx in range(topdat[idx].nmol):
-                molidx += 1
+                mol_in_topology += 1
+                # Initialize resid at start of each molecule
+                resid = (mol_in_topology - 1) % 9999 + 1
+                prev_resname = None  # Track previous residue name for 'residue' mode
+                
                 for kdx in range(topdat[idx].nat):
                     atidx += 1
-                    if topdat[idx].resname[kdx] in AA:
-                        if topdat[idx].atomname[kdx][:2] in BB and kdx != 0:
-                            molidx += 1
+                    
+                    # Determine resid based on molid_mode
+                    if molid_mode == 'pdbkeep':
+                        # Use residue ID from input PDB file
+                        if atidx <= len(sysdat.resids):
+                            resid = sysdat.resids[atidx - 1] % 10000  # Keep within 4-digit limit
+                            if resid == 0:
+                                resid = 1
+                        else:
+                            resid = 1  # Fallback if no PDB data
+                    
+                    elif molid_mode == 'residue':
+                        # Increment resid when residue name changes
+                        curr_resname = topdat[idx].resname[kdx]
+                        if prev_resname is not None and curr_resname != prev_resname:
+                            mol_in_topology += 1
+                            resid = (mol_in_topology - 1) % 9999 + 1
+                        prev_resname = curr_resname
+                    
+                    # elif molid_mode == 'molecule':
+                    #     resid stays the same for all atoms in the molecule
+                    #     (already set at the beginning of molecule loop)
+                    
                     tot_charge += topdat[idx].charge[kdx]
                     print("{:8} {:<4} {:<4} {:<4} {:<4} {:<4} {:10.6f} {:13.4f} {:11}".format(
-                           atidx, topdat[idx].resname[kdx], min(9999,molidx), 
+                           atidx, topdat[idx].resname[kdx], resid, 
                            topdat[idx].resname[kdx], topdat[idx].atomname[kdx],
                            topdat[idx].atomtype[kdx], topdat[idx].charge[kdx], 
                            topdat[idx].mass[kdx], 0), file=fout)
@@ -360,7 +398,7 @@ def write_psf(topdat, sysdat):
             enm_index = 0
             for idx in range(sysdat.ntops):
                 enmb_in_topology = sum(1 for k in range(topdat[idx].nbnd) if topdat[idx].bndpset[k] == True)
-                print(f"Topology {idx}: nmol={topdat[idx].nmol}, nat={topdat[idx].nat}, bondparam={enmb_in_topology}, offset_start={offset}", file=sys.stderr)
+                # print(f"Topology {idx}: nmol={topdat[idx].nmol}, nat={topdat[idx].nat}, bondparam={enmb_in_topology}, offset_start={offset}", file=sys.stderr)
                 
                 first_atom = None
                 last_atom = None
@@ -390,12 +428,12 @@ def write_psf(topdat, sysdat):
                         print("{:8} {:8} {:8}".format(atom1, atom2, enm_index), file=fenm_bi)
                 
                 if enmb_in_topology > 0:
-                    print(f"  Wrote {enmb_in_topology * topdat[idx].nmol} ENMBs, atom range: {first_atom}-{last_atom}", file=sys.stderr)
+                    # print(f"  Wrote {enmb_in_topology * topdat[idx].nmol} ENMBs, atom range: {first_atom}-{last_atom}", file=sys.stderr)
                 
                 offset += topdat[idx].nmol * topdat[idx].nat
-                print(f"  offset_end={offset}", file=sys.stderr)
+                # print(f"  offset_end={offset}", file=sys.stderr)
             
-            print(f"Total ENMB written: {bondidx}", file=sys.stderr)
+            # print(f"Total ENMB written: {bondidx}", file=sys.stderr)
             
             # ENMファイルを閉じる
             print("END", file=fenm_bp)
@@ -1694,6 +1732,7 @@ def read_top_Go(fname, sysdat, topdat, ntop, ndup, bbind):
 def run(args):
     inputs = args.input_files
     Go = args.Go
+    molid_mode = args.molid  # Get molid mode from arguments
     nargs = len(inputs)
     if nargs < 4:
         raise ValueError(("ERROR: The command-line arguments are not properly given.\n"
@@ -1841,7 +1880,7 @@ def run(args):
     # write a rtf file for GENESIS
     write_rtf(topdat, sysdat)
     # write a file formatted in PSF for GENESIS
-    write_psf(topdat, sysdat)
+    write_psf(topdat, sysdat, molid_mode)
     return 0
 
 

@@ -1,10 +1,10 @@
-setup_gns
+osetup_gns
 ===============
 Usage   
 --------
 .. parsed-literal::
 
-    cg_spica setup_gns [-Go] <:strong:`topfile 1`> <:strong:`nmol 1`> [<:strong:`topfile 2`> <:strong:`nmol 2`> ... <:strong:`topfile n`> <:strong:`nmol n`>] 
+    cg_spica setup_gns [-Go] [-molid {molecule,residue,pdbkeep}] <:strong:`topfile 1`> <:strong:`nmol 1`> [<:strong:`topfile 2`> <:strong:`nmol 2`> ... <:strong:`topfile n`> <:strong:`nmol n`>] 
                        <:strong:`paramfile`> <:strong:`coordfile`>
 
 Description
@@ -76,9 +76,32 @@ Output files:
     cg_spica setup_gns protein.top 3 WAT.top 5000 spica_db.prm system.pdb
 
 
-
-
 The ``-Go`` option treats each protein as an independent topology. 
+
+**Residue numbering modes with -molid:**
+
+.. code-block:: bash
+
+    # Per-molecule numbering (default): each molecule gets one residue ID
+    cg_spica setup_gns -Go -molid molecule protein.top.v2.Go 3 WAT.top 5000 spica_db.prm system.pdb
+
+.. code-block:: bash
+
+    # Per-residue numbering: resid increments when residue name changes
+    cg_spica setup_gns -Go -molid residue protein.top.v2.Go 3 WAT.top 5000 spica_db.prm system.pdb
+
+.. code-block:: bash
+
+    # Keep PDB residue numbering: preserve resid from input PDB
+    cg_spica setup_gns -Go -molid pdbkeep protein.top.v2.Go 3 WAT.top 5000 spica_db.prm system.pdb
+
+The ``-molid molecule`` mode assigns one residue ID per molecule/monomer. 
+The ``-molid residue`` mode increments residue ID when the residue name changes 
+(e.g., CYT → GUA). The ``-molid pdbkeep`` mode preserves the exact residue 
+numbering from your input PDB file, useful for maintaining consistency with 
+visualization or analysis tools.
+
+
 
 Positional args
 ---------------
@@ -123,6 +146,22 @@ Important Notes
     generates ENM parameter files (``enm_bond_index.ndx``, ``enm_bond_parm.prm``, 
     ``enm_angle_index.ndx``, ``enm_angle_parm.prm``) in the ``toppar/`` directory. 
     These files are automatically detected by ``gen_gnsin``.
+
+**Residue Numbering**
+    Residue IDs in PSF files are limited to 4 digits (1-9999). For systems with more than 
+    9999 molecules of the same type, residue IDs wrap back to 1. Each molecule type resets 
+    the counter, so DOPC molecules 1-128 get residue IDs 1-128, then WAT molecules start 
+    from residue ID 1 again.
+    
+    The ``-molid`` option controls numbering behavior:
+    
+    - ``-molid molecule`` (default): Each molecule gets one residue ID. All atoms in 
+      the same molecule/monomer share the same ID.
+    - ``-molid residue``: Residue ID increments when the residue name changes in the 
+      topology file (e.g., CYT → GUA). Useful for distinguishing different residues.
+    - ``-molid pdbkeep``: Preserves the exact residue IDs from the input PDB file. 
+      Useful for maintaining consistency with visualization tools or analysis workflows 
+      that depend on specific residue numbering.
 
 Complete Workflow
 -----------------
