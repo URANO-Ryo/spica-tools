@@ -391,7 +391,7 @@ def write_psf(topdat, sysdat, molid_mode='molecule'):
             print("ENMP", file=fenm_bp)
             print("ENMT", file=fenm_bi)
             
-            # デバッグ情報
+
             
             bondidx = 0
             offset = 0
@@ -427,13 +427,7 @@ def write_psf(topdat, sysdat, molid_mode='molecule'):
                                topdat[idx].bndfk[kdx], topdat[idx].bndeq[kdx]), file=fenm_bp)
                         print("{:8} {:8} {:8}".format(atom1, atom2, enm_index), file=fenm_bi)
                 
-                if enmb_in_topology > 0:
-                    # print(f"  Wrote {enmb_in_topology * topdat[idx].nmol} ENMBs, atom range: {first_atom}-{last_atom}", file=sys.stderr)
-                
                 offset += topdat[idx].nmol * topdat[idx].nat
-                # print(f"  offset_end={offset}", file=sys.stderr)
-            
-            # print(f"Total ENMB written: {bondidx}", file=sys.stderr)
             
             # ENMファイルを閉じる
             print("END", file=fenm_bp)

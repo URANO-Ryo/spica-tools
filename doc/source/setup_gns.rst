@@ -1,11 +1,11 @@
-osetup_gns
+setup_gns
 ===============
 Usage   
 --------
 .. parsed-literal::
 
-    cg_spica setup_gns [-molid {molecule,residue,pdbkeep}] <:strong:`topfile 1`> <:strong:`nmol 1`> [<:strong:`topfile 2`> <:strong:`nmol 2`> ... <:strong:`topfile n`> <:strong:`nmol n`>] 
-                       <:strong:`paramfile`> <:strong:`coordfile`>
+    cg_spica setup_gns [-molid {molecule,residue,pdbkeep}] <:strong:`topfile 1`> <:strong:`nmol 1`> 
+                       [<:strong:`topfile 2`> <:strong:`nmol 2`> ... <:strong:`topfile n`> <:strong:`nmol n`>] <:strong:`paramfile`> <:strong:`coordfile`>
 
 Description
 -----------
@@ -51,53 +51,52 @@ Example
 :download:`dopc.cg.pdb <data/dopc.cg.pdb>`  
 
 Output files:
+:download:`gns_spica.psf <data/output_setup_gns1/gns_spica.psf>`  
+:download:`par_spica_charmm.prm <data/output_setup_gns1/toppar/par_spica_charmm.prm>`
+:download:`top_spica_charmm.rtf <data/output_setup_gns1/toppar/top_spica_charmm.rtf>`
 
-:download:`toppar/top_spica_charmm.rtf <data/top_spica_charmm.rtf>`  
-:download:`toppar/par_spica_charmm.prm <data/par_spica_charmm.prm>`  
-:download:`gns_spica.psf <data/gns_spica.psf>`  
-
+					
 **Protein wit ENM:**
 
 .. code-block:: bash
 
-    cg_spica setup_gns  protein.top 1 WAT.top 5000 spica_db.prm protein.cg.pdb
+    cg_spica setup_gns  protein.CG_A.top  1  spica_db.prm proteinA.cg.pdb
 
- This generates ENM files in addition to the standard output files:
+This necessary ENM files in addition to the standard output files:
 
-- ``toppar/enm_bond_index.ndx``
-- ``toppar/enm_bond_parm.prm``
-- ``toppar/enm_angle_index.ndx``
-- ``toppar/enm_angle_parm.prm``
+:download:`protein.CG_A.top <data/protein.CG_A.top>`  
+:download:`proteinA.cg.pdb <data/proteinA.cg.pdb>`  
+
+
+Output files:
+:download:`gns_spica.psf <data/output_setup_gns2/gns_spica.psf>`  
+:download:`par_spica_charmm.prm <data/output_setup_gns2/toppar/par_spica_charmm.prm>`
+:download:`top_spica_charmm.rtf <data/output_setup_gns2/toppar/top_spica_charmm.rtf>`
+:download:`enm_angle_index.ndx <data/output_setup_gns2/toppar/enm_angle_index.ndx>`
+:download:`enm_angle_parm.prm <data/output_setup_gns2/toppar/enm_angle_parm.prm>`
+
 
 **Multiple protein copies with ENM:**
 
 .. code-block:: bash
+ 
+    cg_spica setup_gns  protein.CG_A.top  1  protein.CG_B.top  1 protein.CG_C.top 1 spica_db.prm proteinABC.cg.pdb
 
-    cg_spica setup_gns protein.top 3 WAT.top 5000 spica_db.prm system.pdb
+:download:`protein.CG_A.top <data/protein.CG_A.top>`  
+:download:`protein.CG_B.top <data/protein.CG_B.top>`  
+:download:`protein.CG_C.top <data/protein.CG_C.top>`  
+:download:`proteinABC.cg.pdb <data/proteinABC.cg.pdb>`  
 
 
-**Residue numbering modes with -molid:**
-
-.. code-block:: bash
-
-    # Per-molecule numbering (default): each molecule gets one residue ID
-    cg_spica setup_gns -molid molecule protein.top.v2 3 WAT.top 5000 spica_db.prm system.pdb
-
-.. code-block:: bash
-
-    # Per-residue numbering: resid increments when residue name changes
-    cg_spica setup_gns -molid residue protein.top.v2 3 WAT.top 5000 spica_db.prm system.pdb
-
-.. code-block:: bash
-
-    # Keep PDB residue numbering: preserve resid from input PDB
-    cg_spica setup_gns -molid pdbkeep protein.top.v2 3 WAT.top 5000 spica_db.prm system.pdb
-
-The ``-molid molecule`` mode assigns one residue ID per molecule/monomer. 
-The ``-molid residue`` mode increments residue ID when the residue name changes 
-(e.g., CYT → GUA). The ``-molid pdbkeep`` mode preserves the exact residue 
-numbering from your input PDB file, useful for maintaining consistency with 
-visualization or analysis tools.
+This generates ENM files in addition to the standard output files:
+Output files:
+:download:`gns_spica.psf <data/output_setup_gns3/gns_spica.psf>`  
+:download:`par_spica_charmm.prm <data/output_setup_gns3/toppar/par_spica_charmm.prm>`
+:download:`top_spica_charmm.rtf <data/output_setup_gns3/toppar/top_spica_charmm.rtf>`
+:download:`enm_angle_index.ndx <data/output_setup_gns3/toppar/enm_angle_index.ndx>`
+:download:`enm_angle_parm.prm <data/output_setup_gns3/toppar/enm_angle_parm.prm>`
+:download:`enm_bond_index.ndx <data/output_setup_gns3/toppar/enm_bond_index.ndx>`
+:download:`enm_bond_parm.prm <data/output_setup_gns3/toppar/enm_bond_parm.prm>`
 
 
 
@@ -112,7 +111,9 @@ Positional args
     SPICA force field parameter file
 ``coordfile`` <.pdb>
     CG configuration file
-
+    
+``molid`` {molecule,residue,pdbkeep}
+    Residue number assignment for each molecule
 
 Important Notes
 ---------------
@@ -136,7 +137,7 @@ Important Notes
     9999 molecules of the same type, residue IDs wrap back to 1. Each molecule type resets 
     the counter, so DOPC molecules 1-128 get residue IDs 1-128, then WAT molecules start 
     from residue ID 1 again.
-    
+
     The ``-molid`` option controls numbering behavior:
     
     - ``-molid molecule`` (default): Each molecule gets one residue ID. All atoms in 
@@ -148,11 +149,7 @@ Important Notes
       that depend on specific residue numbering.
 
 
+
 See Also
 --------
-
 * :doc:`gen_gnsin` - Generate GENESIS input files
-* :doc:`setup_lmp` - Similar tool for LAMMPS
-* :doc:`setup_gmx` - Similar tool for GROMACS
-* :doc:`ENM` - Generate elastic network topology
-* `GENESIS <https://mdgenesis.org>`__ - MD simulation software

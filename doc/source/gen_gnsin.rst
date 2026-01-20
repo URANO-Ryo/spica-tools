@@ -13,17 +13,14 @@ Description
 
 ``gen_gnsin`` generates GENESIS control (input) files for SPICA or pSPICA CG-MD simulations.
 This program reads box size information from a PDB file and creates an NPT ensemble control file
-optimized for SPICA/pSPICA force fields.
-
-The program requires:
-
-- ``pdbfile``: CG configuration file in PDB format with CRYST1 line containing box dimensions
-
+optimized for SPICA/pSPICA force fields. The program requires
+``pdbfile`` for CG configuration file in PDB format with CRYST1 line containing box dimensions.
+ENM files in ``toppar_dir`` directory are automatically detected and included in the parameter file list. In this case, No manual specification needed.
 The generated control file contains settings specifically optimized for SPICA/pSPICA force fields,
-including appropriate cutoff distances, PME parameters, and domain decomposition suggestions.
-
+including appropriate cutoff distances, PME parameters, and possible domain decomposition suggestions.
 The box size is automatically expanded by 1.02× from the CRYST1 values to provide buffer space
 for NPT equilibration.
+
 
 Example
 -------
@@ -32,25 +29,27 @@ Example
 
 .. code-block:: bash
 
-    cg_spica gen_gnsin -pdb system.pdb
+    cg_spica gen_gnsin -pdb dopc.cg.pdb
 
-:download:`system.pdb <data/system.pdb>`
+:download:`dopc.cg.pdb <data/dopc.cg.pdb>` 
 
-:download:`npt.inp <data/npt.inp>`
 
 **Generate pSPICA input file:**
 
 .. code-block:: bash
 
-    cg_spica gen_gnsin -pdb system.pdb -pspica
+    cg_spica gen_gnsin -pdb p_dopc.cg.pdb  -pspica
 
 This sets ``pme_max_spacing = 2.0`` and ``fast_water = YES`` for polarizable water models.
+
+:download:`p_dopc.cg.pdb <data/p_dopc.cg.pdb>`  
+
 
 **Specify custom output filename:**
 
 .. code-block:: bash
 
-    cg_spica gen_gnsin -pdb system.pdb -o production.inp
+    cg_spica gen_gnsin -pdb dopc.cg.pdb -o production.inp
 
 Positional args
 ---------------
@@ -97,10 +96,25 @@ The generated control file includes:
     PBC with expanded box dimensions (original × 1.02). Domain decomposition 
     numbers with suggested values in comments.
 
-Domain Decomposition
---------------------
 
-The program calculates reasonable domain decomposition numbers based on:
+
+Important Notes
+---------------
+
+
+**CRYST1 Line Required**
+    PDB file must contain a CRYST1 line with box information:
+
+    .. code-block:: none
+
+        CRYST1  400.000  500.000  600.000  90.00  90.00  90.00 P 1           1
+
+**Box Size Expansion**
+    Box dimensions are automatically expanded by 1.02× to provide buffer space.
+    Original: 400×500×600 Å → Simulation: 408×510×612 Å
+
+**Domain Decomposition**
+    The program calculates reasonable domain decomposition numbers based on:
 
 * Minimum domain size: 100 Å per domain
 * Valid numbers: Multiples of 2 or 3 (e.g., 2, 3, 4, 6, 8, 9, 10, 12, ...)
@@ -117,38 +131,14 @@ For example, with box size 408 Å:
 Users can manually adjust domain_x/y/z values based on available MPI processes.
 Total MPI processes must equal domain_x × domain_y × domain_z.
 
-
-Important Notes
----------------
-
-**CRYST1 Line Required**
-    PDB file must contain a CRYST1 line with box information:
-
-    .. code-block:: none
-
-        CRYST1  400.000  500.000  600.000  90.00  90.00  90.00 P 1           1
-
-**Box Size Expansion**
-    Box dimensions are automatically expanded by 1.02× to provide buffer space.
-    Original: 400×500×600 Å → Simulation: 408×510×612 Å
-
-**ENM File Detection**
-    ENM files in toppar/ directory are automatically detected and included in 
-    the parameter file list. No manual specification needed.
-
 **MPI Requirements**
     GENESIS SPDYN requires at least 2 domains per dimension. Serial execution 
     is not supported. Minimum configuration: 2×2×2 = 8 MPI processes.
 
-**Timestep**
-    Default timestep is 10 fs, appropriate for SPICA coarse-grained models.
-    This is larger than typical all-atom simulations (2 fs).
 
 See Also
 --------
 
 * :doc:`setup_gns` - Generate GENESIS topology and parameter files
-* :doc:`gen_lmpin` - Similar tool for LAMMPS
-* :doc:`gen_gmxin` - Similar tool for GROMACS
-* `GENESIS User Guide <https://mdgenesis.org/assets/fundamental/GENESIS_UserGuide_v2.0.0.pdf>`__
-* `SPICA Force Field <https://www.spica-ff.org/>`__
+
+
