@@ -18,8 +18,6 @@ optimized for SPICA/pSPICA force fields. The program requires
 ENM files in ``toppar_dir`` directory are automatically detected and included in the parameter file list. In this case, No manual specification needed.
 The generated control file contains settings specifically optimized for SPICA/pSPICA force fields,
 including appropriate cutoff distances, PME parameters, and possible domain decomposition suggestions.
-The box size is automatically expanded by 1.02× from the CRYST1 values to provide buffer space
-for NPT equilibration.
 
 
 Example
@@ -93,8 +91,7 @@ The generated control file includes:
     NPT ensemble, BUSSI thermostat/barostat, T=310K, P=1.0atm
 
 **[BOUNDARY] section:**
-    PBC with expanded box dimensions (original × 1.02). Domain decomposition 
-    numbers with suggested values in comments.
+    PBC. Domain decomposition numbers with suggested values in comments.
 
 
 
@@ -110,8 +107,8 @@ Important Notes
         CRYST1  400.000  500.000  600.000  90.00  90.00  90.00 P 1           1
 
 **Box Size Expansion**
-    Box dimensions are automatically expanded by 1.02× to provide buffer space.
-    Original: 400×500×600 Å → Simulation: 408×510×612 Å
+    If the initial minimization fails, and there are no bonds at the PBC boundary, slightly expanding the box size as follows may resolve the issue. Box dimensions might be expanded by 1.02× to provide buffer space.
+    E.g. Original: 400×500×600 Å → Simulation: 408×510×612 Å
 
 **Domain Decomposition**
     The program calculates reasonable domain decomposition numbers based on:

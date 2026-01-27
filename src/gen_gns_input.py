@@ -136,10 +136,14 @@ def generate_genesis_input(pdb_file, output_file='npt.inp', pspica=False, toppar
         print("       CRYST1 line is required.", file=sys.stderr)
         sys.exit(1)
     
-    # Calculate expanded box sizes (1.02x)
-    box_x = box_x0 * 1.02
-    box_y = box_y0 * 1.02
-    box_z = box_z0 * 1.02
+    # Calculate expanded box sizes (1.02x)  (This was turned of by default)
+    # box_x = box_x0 * 1.02
+    # box_y = box_y0 * 1.02
+    # box_z = box_z0 * 1.02
+    box_x = box_x0 * 1.00
+    box_y = box_y0 * 1.00
+    box_z = box_z0 * 1.00
+
     
     print(f"Original box size: {box_x0:.2f} x {box_y0:.2f} x {box_z0:.2f} Ang")
     print(f"Expanded box size: {box_x:.2f} x {box_y:.2f} x {box_z:.2f} Ang")
