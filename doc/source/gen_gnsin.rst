@@ -6,7 +6,8 @@ Usage
 
 .. parsed-literal::
 
-    cg_spica gen_gnsin -pdb <:strong:`pdbfile`> [-o <:strong:`output`>] [-pspica] [--toppar_dir <:strong:`dir`>]
+    cg_spica gen_gnsin -pdb <:strong:`pdbfile`> [-o <:strong:`output`>] [-pspica] [--toppar_dir <:strong:`dir`>] 
+                                      [-scale <:strong:`factors`>]
 
 Description
 -----------
@@ -16,6 +17,8 @@ This program reads box size information from a PDB file and creates an NPT ensem
 optimized for SPICA/pSPICA force fields. The program requires
 ``pdbfile`` for CG configuration file in PDB format with CRYST1 line containing box dimensions.
 ENM files in ``toppar_dir`` directory are automatically detected and included in the parameter file list. In this case, No manual specification needed.
+By default, the box size from CRYST1 is used as-is. You can optionally 
+scale the box dimensions using the ``-scale`` option (see below).
 The generated control file contains settings specifically optimized for SPICA/pSPICA force fields,
 including appropriate cutoff distances, PME parameters, and possible domain decomposition suggestions.
 
@@ -70,6 +73,13 @@ Optional args
 ``--toppar_dir`` <dir>
     Directory containing topology/parameter files (default: toppar)
 
+``-scale`` <factors>
+    Box size scaling factors. Three usage modes:
+    
+    * No ``-scale`` option: Use originalCRYST1 box size (default)
+    * ``-scale 1.02``: Apply uniform scaling to all dimensions (Lx, Ly, Lz)
+    * ``-scale 1.02 1.02 1.02``: Apply individual scaling to x, y, z dimensions
+
 Output File
 -----------
 
@@ -100,15 +110,11 @@ Important Notes
 
 
 **CRYST1 Line Required**
-    PDB file must contain a CRYST1 line with box information:
+    PDB file must contain a CRYST1 line with box information: 
 
     .. code-block:: none
 
         CRYST1  400.000  500.000  600.000  90.00  90.00  90.00 P 1           1
-
-**Box Size Expansion**
-    If the initial minimization fails, and there are no bonds at the PBC boundary, slightly expanding the box size as follows may resolve the issue. Box dimensions might be expanded by 1.02× to provide buffer space.
-    E.g. Original: 400×500×600 Å → Simulation: 408×510×612 Å
 
 **Domain Decomposition**
     The program calculates reasonable domain decomposition numbers based on:
@@ -117,11 +123,11 @@ Important Notes
 * Valid numbers: Multiples of 2 or 3 (e.g., 2, 3, 4, 6, 8, 9, 10, 12, ...)
 * Minimum count: 2 domains per dimension
 
-For example, with box size 408 Å:
+For example, with box size 400 Å:
 
 .. code-block:: none
 
-    Maximum domains: floor(408 / 100) = 4
+    Maximum domains: floor(400 / 100) = 4
     Valid candidates: 2, 3, 4
     Output: domain_x = 2    # 2, 3, 4 is reasonable
 
@@ -131,7 +137,7 @@ Total MPI processes must equal domain_x × domain_y × domain_z.
 **MPI Requirements**
     GENESIS SPDYN requires at least 2 domains per dimension. Serial execution 
     is not supported. Minimum configuration: 2×2×2 = 8 MPI processes.
-		This predicted value is based on empirical rules, and the actual maximum depends on the actual system size, pressure, and other factors. Therefore, please first confirm that the calculation runs without problems using 2x2x2, and then gradually increase the number of MPI processes.
+		This predicted value is based on empirical rules, and the actual maximum depends on the actual system size, pressure, and other factors. Therefore, please first confirm that the calculation runs without problems using 2x2x2, and then gradually increase the number of MPI processes. For restriction of the number of MPI, see GENESIS spdyn document in detail.
 
 See Also
 --------

@@ -113,7 +113,7 @@ def calculate_domain_candidates(box_size, min_cell_size=100.0):
     return candidates if candidates else [2]
 
 
-def generate_genesis_input(pdb_file, output_file='npt.inp', pspica=False, toppar_dir='toppar'):
+def generate_genesis_input(pdb_file, output_file='npt.inp', pspica=False, toppar_dir='toppar', scale_factors=None):
     """
     Generate GENESIS control file for NPT MD simulation.
     
@@ -127,24 +127,40 @@ def generate_genesis_input(pdb_file, output_file='npt.inp', pspica=False, toppar
         Use pSPICA parameters (default: False)
     toppar_dir : str
         Directory containing topology and parameter files (default: toppar)
+    scale_factors : list of float or None
+        Box size scaling factors. None (default), [scale] for uniform scaling,
+        or [scale_x, scale_y, scale_z] for per-dimension scaling
     """
     # Read box dimensions from PDB
     box_x0, box_y0, box_z0 = read_pdb_box(pdb_file)
     
     if box_x0 is None or box_y0 is None or box_z0 is None:
-        print("ERROR: Box size information not found in PDB file.", file=sys.stderr)
-        print("       CRYST1 line is required.", file=sys.stderr)
+        print("ERROR: No CRYST LINE exist", file=sys.stderr)
+        print("       CRYST1 line is required in the PDB file.", file=sys.stderr)
         sys.exit(1)
     
-    # Scalable  box sizes (1.00x default) 
-    box_x = box_x0 * 1.00
-    box_y = box_y0 * 1.00
-    box_z = box_z0 * 1.00
+    # Process scaling factors
+    if scale_factors is None:
+        # Default: no scaling
+        scale_x = scale_y = scale_z = 1.0
+    elif len(scale_factors) == 1:
+        # Single value: apply to all dimensions
+        scale_x = scale_y = scale_z = scale_factors[0]
+    elif len(scale_factors) == 3:
+        # Three values: apply to x, y, z respectively
+        scale_x, scale_y, scale_z = scale_factors
+    else:
+        print(f"ERROR: Invalid number of scaling factors: {len(scale_factors)}", file=sys.stderr)
+        print("       Provide either 1 value (uniform) or 3 values (x, y, z)", file=sys.stderr)
+        sys.exit(1)
+    
+    # Calculate scaled box sizes
+    box_x = box_x0 * scale_x
+    box_y = box_y0 * scale_y
+    box_z = box_z0 * scale_z
+    
+    print(f"Box size: {box_x:.2f} x {box_y:.2f} x {box_z:.2f} Angstrom")
 
-    
-    print(f"Original box size: {box_x0:.2f} x {box_y0:.2f} x {box_z0:.2f} Ang")
-    print(f"Expanded box size: {box_x:.2f} x {box_y:.2f} x {box_z:.2f} Ang")
-    
     # Calculate domain decomposition candidates
     domain_x_candidates = calculate_domain_candidates(box_x)
     domain_y_candidates = calculate_domain_candidates(box_y)
@@ -155,11 +171,7 @@ def generate_genesis_input(pdb_file, output_file='npt.inp', pspica=False, toppar
     domain_y = 2
     domain_z = 2
     
-    print(f"\nRecommended domain decomposition:")
-    print(f"  domain_x: {domain_x_candidates}")
-    print(f"  domain_y: {domain_y_candidates}")
-    print(f"  domain_z: {domain_z_candidates}")
-    
+   
     # Check for ENM files
     enm_files = check_enm_files(toppar_dir)
     
@@ -278,6 +290,10 @@ def get_option_script(args):
                         help='Use pSPICA parameters (pme_max_spacing=2, fast_water=YES)')
     parser.add_argument('--toppar_dir', default='toppar',
                         help='Directory containing topology/parameter files (default: toppar)')
+    parser.add_argument('-scale', '--scale', nargs='+', type=float, metavar='SCALE',
+                        help='Box size scaling factors. One value applies to all dimensions (e.g., -scale 1.02), '
+                             'three values apply to x, y, z respectively (e.g., -scale 1.02 1.02 1.02). '
+                             'Default: no scaling (1.0 1.0 1.0)')
     
     return parser.parse_args(args)
 
@@ -292,14 +308,8 @@ def run(args):
         print(f"WARNING: toppar directory not found: {args.toppar_dir}", file=sys.stderr)
         print(f"         Please make sure topology files exist before running GENESIS.", file=sys.stderr)
     
-    generate_genesis_input(args.pdb, args.output, args.pspica, args.toppar_dir)
+    generate_genesis_input(args.pdb, args.output, args.pspica, args.toppar_dir, args.scale)
     
-    print("\nDone. Please check the generated input file before running simulation.")
-    print("Remember to prepare topology files using setup_gns first if not done.")
-    print("\nTo run the simulation:")
-    print("  export OMP_NUM_THREADS=4")
-    print("  mpirun -n 8 spdyn npt.inp > npt.log")
-
 
 if __name__ == '__main__':
     args = get_option_script(sys.argv[1:])
