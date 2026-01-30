@@ -131,7 +131,7 @@ Total MPI processes must equal domain_x × domain_y × domain_z.
 **MPI Requirements**
     GENESIS SPDYN requires at least 2 domains per dimension. Serial execution 
     is not supported. Minimum configuration: 2×2×2 = 8 MPI processes.
-
+		This predicted value is based on empirical rules, and the actual maximum depends on the actual system size, pressure, and other factors. Therefore, please first confirm that the calculation runs without problems using 2x2x2, and then gradually increase the number of MPI processes.
 
 See Also
 --------
