@@ -75,8 +75,10 @@ Available command-line tools
    wat2polar
    setup_lmp
    setup_gmx
+   setup_gns
    gen_lmpin
    gen_gmxin
+   gen_gnsin
 
 .. Indices and tables
 .. ==================

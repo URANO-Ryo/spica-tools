@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.append( str(Path(__file__).resolve().parents[1] / "src") )
 import gen_top_ENM, gen_top_Go, json_to_top, map_to_cg, map_traj
 import wat_to_polar, setup_lmp, setup_gmx, gen_lmp_input, gen_gmx_input
+import setup_gns, gen_gns_input
 import mod_ion
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -23,8 +24,10 @@ def get_option():
     wat2polar : convert SPICA CG water to pSPICA polar CG water
     setup_lmp : generate input files to run CG-MD with LAMMPS
     setup_gmx : generate input files to run CG-MD with GROMACS
+    setup_gns : generate input files to run CG-MD with GENESIS
     gen_lmpin : generate LAMMPS input file for SPICA or pSPICA
     gen_gmxin : generate GROMACS input file for SPICA or pSPICA
+    gen_gnsin : generate GENESIS input file for SPICA or pSPICA
     ----------------------------------------------------------------------
                                                  """))
     argparser.add_argument('tool_name', type=str,
@@ -111,6 +114,9 @@ def main():
     elif args.tool_name == "setup_gmx":
         args = setup_gmx.get_option_script(sub)
         setup_gmx.run(args)
+    elif args.tool_name == "setup_gns":
+        args = setup_gns.get_option_script(sub)
+        setup_gns.run(args)
     elif args.tool_name == "gen_lmpin":
         args = gen_lmp_input.get_option_script(sub)
         datafile = args.data
@@ -132,6 +138,9 @@ def main():
         em = args.em
         gen_gmxin = gen_gmx_input.gen_gmx_inp(conf, ndxf, outf, temp, press, pspica, em)
         gen_gmxin.run()
+    elif args.tool_name == "gen_gnsin":
+        args = gen_gns_input.get_option_script(sub)
+        gen_gns_input.run(args)
     else:
         sys.exit(f"ERROR: invalid tool name {args.tool_name}")
 

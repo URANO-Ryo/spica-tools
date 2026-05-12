@@ -7,8 +7,13 @@ from argparse import ArgumentParser
 
 # A generated directory including topology and parameter files
 TPRDIR = "toppar"
+aa3to1 = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+          'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'HSD': 'H',
+          'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F',
+          'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y',
+          'VAL': 'V'}
 # A tuple of amino acid names
-AA = ("ALA", "ARG", "AGN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", 
+AA = ("ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
       "LEU", "LYS", "MET", "PRO", "PHE", "SER", "THR", "TRP", "TYR", "VAL",
       "HSD", "HSE")
 # A tuple of backbone name prefixes
@@ -18,16 +23,20 @@ BB = ("GB", "AB")
 def get_option():
     argparser = ArgumentParser()
     argparser.add_argument('input_files', type=str, nargs="+",
-        help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
+                           help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
     argparser.add_argument('-Go', action='store_true',help='Go model for protein backbone')
+    argparser.add_argument('-molid', choices=['molecule', 'residue', 'pdbkeep'], default='molecule',
+                           help='Residue ID numbering mode: "molecule" for per-molecule numbering (default), "residue" for per-residue numbering (increments when residue name changes), "pdbkeep" to preserve residue IDs from input PDB file')
     return argparser.parse_args()
 
 
 def get_option_script(argv):
-    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] input_files', prog ="setup_gmx")
+    argparser = ArgumentParser(usage='setup_gns [-h] [-Go] [-molid {molecule,residue,pdbkeep}] input_files', prog="setup_gns")
     argparser.add_argument('input_files', type=str, nargs="+",
-        help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
+                           help='<topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... <topfile n> <nmol n>] <param file> <coordfile>')
     argparser.add_argument('-Go', action='store_true',help='Go model for protein backbone')
+    argparser.add_argument('-molid', choices=['molecule', 'residue', 'pdbkeep'], default='molecule',
+                           help='Residue ID numbering mode: "molecule" for per-molecule numbering (default), "residue" for per-residue numbering (increments when residue name changes), "pdbkeep" to preserve residue IDs from input PDB file')
     return argparser.parse_args(argv)
 
 
@@ -38,11 +47,11 @@ def get_angle(r1, r2, r3):
     r13_mag = np.linalg.norm(r12)*np.linalg.norm(r32)
     cos13 = r13_inn/r13_mag
     if cos13 < -1.0:
-       return np.pi
+        return np.pi
     elif cos13 > 1.0:
-       return 0.0
+        return 0.0
     else:
-       return np.arccos(cos13)
+        return np.arccos(cos13)
 
 
 def get_dihedral(r1, r2, r3, r4):
@@ -83,6 +92,7 @@ class Sysdat:
     keep_ndihs = 0
     param_bnds, param_angs, param_dihs, param_imps  = [], [], [], []
     coordx, coordy, coordz = [], [], []
+    resids = []  # Residue IDs from input PDB
     boxx = boxy = boxz = 0.0
 
 
@@ -136,6 +146,12 @@ def read_pdb(fname, sysdat):
                 sysdat.coordx.append(float(line[col:col+8]))
                 sysdat.coordy.append(float(line[col+8:col+16]))
                 sysdat.coordz.append(float(line[col+16:col+24]))
+                # Read residue ID from PDB (columns 23-26, 1-indexed -> 22:26 in Python)
+                try:
+                    resid = int(line[22:26].strip())
+                except (ValueError, IndexError):
+                    resid = 1  # Default to 1 if cannot parse
+                sysdat.resids.append(resid)
                 sysdat.foundatoms += 1
             line = fin.readline()
         if sysdat.foundatoms == 0:
@@ -227,28 +243,55 @@ def resi_rtf(fout, top):
     print(file=fout)
 
 
-def write_psf(topdat, sysdat):
+def write_psf(topdat, sysdat, molid_mode='molecule'):
     with open(f"gns_spica.psf", "w") as fout:
         print("PSF ", file=fout)
         print(file=fout)
         print("       2 !NTITLE", file=fout)
-        print("* created by setup_lammps", file=fout)
+        print("* created by setup_gns", file=fout)
         print("* dummy", file=fout)
         print(file=fout)
         print("{:8} !NATOM".format(sysdat.total_ats), file=fout)
-        atidx = molidx = 0
+        atidx = 0
         tot_charge = 0.0
+        
         for idx in range(sysdat.ntops):
+            mol_in_topology = 0  # Reset for each topology type
+            
             for jdx in range(topdat[idx].nmol):
-                molidx += 1
+                mol_in_topology += 1
+                # Initialize resid at start of each molecule
+                resid = (mol_in_topology - 1) % 9999 + 1
+                prev_resname = None  # Track previous residue name for 'residue' mode
+                
                 for kdx in range(topdat[idx].nat):
                     atidx += 1
-                    if topdat[idx].resname[kdx] in AA:
-                        if topdat[idx].atomname[kdx][:2] in BB and kdx != 0:
-                            molidx += 1
+                    
+                    # Determine resid based on molid_mode
+                    if molid_mode == 'pdbkeep':
+                        # Use residue ID from input PDB file
+                        if atidx <= len(sysdat.resids):
+                            resid = sysdat.resids[atidx - 1] % 10000  # Keep within 4-digit limit
+                            if resid == 0:
+                                resid = 1
+                        else:
+                            resid = 1  # Fallback if no PDB data
+                    
+                    elif molid_mode == 'residue':
+                        # Increment resid when residue name changes
+                        curr_resname = topdat[idx].resname[kdx]
+                        if prev_resname is not None and curr_resname != prev_resname:
+                            mol_in_topology += 1
+                            resid = (mol_in_topology - 1) % 9999 + 1
+                        prev_resname = curr_resname
+                    
+                    # elif molid_mode == 'molecule':
+                    #     resid stays the same for all atoms in the molecule
+                    #     (already set at the beginning of molecule loop)
+                    
                     tot_charge += topdat[idx].charge[kdx]
                     print("{:8} {:<4} {:<4} {:<4} {:<4} {:<4} {:10.6f} {:13.4f} {:11}".format(
-                           atidx, topdat[idx].resname[kdx], min(9999,molidx), 
+                           atidx, topdat[idx].resname[kdx], resid, 
                            topdat[idx].resname[kdx], topdat[idx].atomname[kdx],
                            topdat[idx].atomtype[kdx], topdat[idx].charge[kdx], 
                            topdat[idx].mass[kdx], 0), file=fout)
@@ -257,7 +300,14 @@ def write_psf(topdat, sysdat):
         else:
             print("WARNING: Total charge is not neutral ({})".format(round(tot_charge, 6)))
         print(file=fout)
-        print("{:8} !NBOND: bonds".format(sysdat.total_bnds - sysdat.enm_bonds), file=fout)
+        # print("{:8} !NBOND: bonds".format(sysdat.total_bnds - sysdat.enm_bonds), file=fout)
+        actual_bonds = 0
+        for idx in range(sysdat.ntops):
+            bonds_in_top = sum(1 for j in range(topdat[idx].nbnd) if topdat[idx].bndpset[j] == False)
+            actual_bonds += bonds_in_top * topdat[idx].nmol
+
+        print("{:8} !NBOND: bonds".format(actual_bonds), file=fout)
+
         if sysdat.total_bnds > 0:
             bondidx = offset  = 0
             for idx in range(sysdat.ntops):
@@ -335,19 +385,55 @@ def write_psf(topdat, sysdat):
         print(file=fout)
         if sysdat.enm_bonds > 0:
             print("{:8} !NENMB: elastic network bonds".format(sysdat.enm_bonds), file=fout)
-            bondidx = offset  = 0
+            # ENMファイルを開く
+            fenm_bp = open(f"{TPRDIR}/enm_bond_parm.prm", "w")
+            fenm_bi = open(f"{TPRDIR}/enm_bond_index.ndx", "w")
+            print("ENMP", file=fenm_bp)
+            print("ENMT", file=fenm_bi)
+            
+
+            
+            bondidx = 0
+            offset = 0
+            enm_index = 0
             for idx in range(sysdat.ntops):
+                enmb_in_topology = sum(1 for k in range(topdat[idx].nbnd) if topdat[idx].bndpset[k] == True)
+                # print(f"Topology {idx}: nmol={topdat[idx].nmol}, nat={topdat[idx].nat}, bondparam={enmb_in_topology}, offset_start={offset}", file=sys.stderr)
+                
+                first_atom = None
+                last_atom = None
+                
                 for jdx in range(topdat[idx].nmol):
                     for kdx in range(topdat[idx].nbnd):
                         if topdat[idx].bndpset[kdx] == False:
                             continue
                         bondidx += 1
-                        print("{:>8}{:>8}".format(topdat[idx].bndndx1[kdx]+(jdx*topdat[idx].nat)+offset,
-                                                  topdat[idx].bndndx2[kdx]+(jdx*topdat[idx].nat)+offset),
-                               file=fout, end="")
+                        enm_index += 1
+                        
+                        atom1 = topdat[idx].bndndx1[kdx] + jdx*topdat[idx].nat + offset
+                        atom2 = topdat[idx].bndndx2[kdx] + jdx*topdat[idx].nat + offset
+                        
+                        if first_atom is None:
+                            first_atom = atom1
+                        last_atom = max(atom1, atom2)
+                        
+                        # PSFファイルに書き込み（NBONDと同じ実装）
+                        print("{:>8}{:>8}".format(atom1, atom2), file=fout, end="")
                         if bondidx % 4 == 0:
                             print(file=fout)
-                offset += topdat[idx].nmol*topdat[idx].nat
+                        # ENMファイルに書き込み
+                        print("{:<7} {:8.4f} {:8.4f}".format(
+                               enm_index,
+                               topdat[idx].bndfk[kdx], topdat[idx].bndeq[kdx]), file=fenm_bp)
+                        print("{:8} {:8} {:8}".format(atom1, atom2, enm_index), file=fenm_bi)
+                
+                offset += topdat[idx].nmol * topdat[idx].nat
+            
+            # ENMファイルを閉じる
+            print("END", file=fenm_bp)
+            print("END", file=fenm_bi)
+            fenm_bp.close()
+            fenm_bi.close()
    
      
 def pwat4gns(atype):
@@ -525,27 +611,20 @@ def get_unique(database, topdat, sysdat):
                     bnd_params.append(-1)
                     enm_bonds += 1
                     if not found_enm:
-                        fenm_bp = open(f"{TPRDIR}/enm_bond_parm.prm", "w")
-                        fenm_bi = open(f"{TPRDIR}/enm_bond_index.ndx", "w")
-                        print("ENMP", file=fenm_bp)
-                        print("ENMT", file=fenm_bi)
                         found_enm = True
-                    print("{:<7} {:8.4f} {:8.4f}".format(
-                           enm_bonds,
-                           topdat[idx].bndfk[jdx], topdat[idx].bndeq[jdx]), file=fenm_bp)
-                    print("{:8} {:8} {:8}".format(
-                           topdat[idx].bndndx1[jdx]+index0, topdat[idx].bndndx2[jdx]+index0,
-                           enm_bonds), file=fenm_bi)
+                    # ENMファイルの書き込みはwrite_psf関数に移動
             index0 += topdat[idx].nat*topdat[idx].nmol
     # Finished looping over top files
-    sysdat.enm_bonds = enm_bonds
+    # enm_bondsに全分子分の数を設定
+    total_enm_bonds = 0
+    for idx in range(sysdat.ntops):
+        enm_in_top = sum(1 for j in range(topdat[idx].nbnd) if topdat[idx].bndpset[j] == True)
+        total_enm_bonds += enm_in_top * topdat[idx].nmol
+    sysdat.enm_bonds = total_enm_bonds
+
     sysdat.uniq_nbnds = uniq_bnds
     print(file=fout)
-    if found_enm:
-        print("END", file=fenm_bp)
-        print("END", file=fenm_bi)
-        fenm_bp.close()
-        fenm_bi.close()
+    # ENMファイルのcloseはwrite_psf関数に移動
     # ANGLES
     if sysdat.nangs > 0:
         print("ANGLES", file=fout)
@@ -969,6 +1048,7 @@ def get_unique(database, topdat, sysdat):
                            file=fout)
     sysdat.uniq_nimps = uniq_imps
     # NONBONDED
+
     print("NONBONDED nbxmod  3 atom cdiel fshift vatom vdistance vfswitch -", file=fout)
     print("cutnb 15.0 ctofnb 12.0 ctonnb 10.0 eps 1.0 e14fac 1.0 wmin 1.5", file=fout)
     print("!", file=fout)
@@ -1007,6 +1087,8 @@ def get_unique(database, topdat, sysdat):
         for jdx in range(idx, uniq_nats):
             if Go_bool[idx][jdx]:
                 continue
+            # start if: get (tmp_type1, tmp_type2) from (uniq_atype[idx], uniq_atype[jdx])
+
             if uniq_atype[idx][0:4] in bb_sec and uniq_atype[jdx] in database.loop_pair:
                 tmp_type1 = uniq_atype[idx][0:4]
                 tmp_type2 = uniq_atype[jdx]
@@ -1026,6 +1108,9 @@ def get_unique(database, topdat, sysdat):
                     tmp_type2 = uniq_atype[jdx][0:3]
                 else:
                     tmp_type2 = uniq_atype[jdx]
+            # end if: get (tmp_type1, tmp_type2) from (uniq_atype[idx], uniq_atype[jdx])
+
+            
             found = False
             for kdx in range(database.nvdwtype):
                 if database.vdwtype1[kdx] == tmp_type1 and database.vdwtype2[kdx] == tmp_type2:
@@ -1039,8 +1124,10 @@ def get_unique(database, topdat, sysdat):
             if found:
                 lj_mn = re.match(r"lj(.+)_(.+)", database.vdwstyle[vdwtmp])
                 print("{:<6} {:<6} {:5.4f} {:5.4f}   {:3} {:3}".format(
-                       database.vdwtype1[vdwtmp],
-                       database.vdwtype2[vdwtmp],
+                       uniq_atype[idx],
+
+                       uniq_atype[jdx],
+
                        database.eps[vdwtmp], 
                        database.sig[vdwtmp], 
                        lj_mn.groups()[0], 
@@ -1490,7 +1577,7 @@ def read_top_Go(fname, sysdat, topdat, ntop, ndup, bbind):
                     topdat[ntop+i].bndeq.append(float(items[4]))
                     topdat[ntop+i].bndpset.append(True)
                 bndx += 1
-            if items[0] == "angle":
+            if items[0] == "angle": # angle is normal angles, params from database
                 try:
                     topdat[ntop].angndx1.append(int(items[1]))
                     topdat[ntop].angndx2.append(int(items[2]))
@@ -1508,7 +1595,7 @@ def read_top_Go(fname, sysdat, topdat, ntop, ndup, bbind):
                     topdat[ntop+i].angeq.append(None)
                     topdat[ntop+i].angpset.append(-1)
                 andx += 1
-            if items[0] == "angleparam":
+            if items[0] == "angleparam":  # angleparam is for structure-ased angle
                 if log_angprm:
                     print("NOTE: Using angle parameters from the top file.")
                     log_angprm = False
@@ -1639,15 +1726,17 @@ def read_top_Go(fname, sysdat, topdat, ntop, ndup, bbind):
 def run(args):
     inputs = args.input_files
     Go = args.Go
+    molid_mode = args.molid  # Get molid mode from arguments
     nargs = len(inputs)
     if nargs < 4:
         raise ValueError(("ERROR: The command-line arguments are not properly given.\n"
-                          "Usage: setup_lmp [-Go] <topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... "
+                          "Usage: setup_gns [-Go] <topfile 1> <nmol 1> [ <topfile 2> <nmol 2> ..... "
                           "<topfile n> <nmol n>] <paramfile> <coordfile>"))
     ntops = int((nargs - 2)/2)
     topdat = [Topdat() for _ in range(ntops)]
     database = Database() 
     sysdat = Sysdat()
+    # start if Go
     if Go:
         bbind = {'GBM':0,'GBB':0,'GBT':0,'ABB':0,'ABT':0,
                  'GBML':0,'GBBL':0,'ABBL':0,'GBTL':0,'ABTL':0,
@@ -1726,10 +1815,11 @@ def run(args):
                 read_top(inputs[2*idx], sysdat, topdat, rdtp)
                 rdtp += ndup[idx]
         sysdat.ntops = rdtp
-    # end read tops for Go
+    # end read tops for if Go
+    # if not Go
     else:
         print("Will read {} topology file(s).".format(ntops))
-        print()
+        print("not Go!")
         rdtp = 0
         # loop through the topologies and count the number of atoms, bonds and bends
         while rdtp < ntops:
@@ -1766,7 +1856,7 @@ def run(args):
             topdat[rdtp].nmol = int(inputs[(2*rdtp + 1)])
             read_top(inputs[2*rdtp], sysdat, topdat, rdtp)
             rdtp += 1
-    # end read tops
+    # end read tops for if not Go
     read_database(inputs[nargs-2], database)
     print("###############################")
     print("######  Database Summary ######")
@@ -1784,7 +1874,7 @@ def run(args):
     # write a rtf file for GENESIS
     write_rtf(topdat, sysdat)
     # write a file formatted in PSF for GENESIS
-    write_psf(topdat, sysdat)
+    write_psf(topdat, sysdat, molid_mode)
     return 0
 
 

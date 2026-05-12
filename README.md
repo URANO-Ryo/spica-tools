@@ -61,8 +61,10 @@ make html
                   Apply the patch file distributed in the repository of SPICA-group 
                   ([gromacs-spica](https://github.com/SPICA-group/gromacs-spica)) to GROMACS software to make it useful 
                   for the MD with SPICA-FF
+  * `setup_gns` : generate input files to run CG-MD with [GENESIS](https://mdgenesis.org)
   * `gen_lmpin` : generate a LAMMPS input file for SPICA or pSPICA
   * `gen_gmxin` : generate GROMACS input files for SPICA or pSPICA
+  * `gen_gnsin` : generate a GENESIS input file for SPICA or pSPICA
 
 * External tool
   * [cgbuilder](https://yskmiyazaki.github.io/cgbuilder/) : generate CG configuration and mapping information files from an AA configuration file ([github](https://github.com/yskmiyazaki/cgbuilder?tab=readme-ov-file)).
